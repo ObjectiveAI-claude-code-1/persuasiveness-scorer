@@ -1,73 +1,105 @@
-# ObjectiveAI Function Sandbox
+# persuasiveness-scorer
 
-A sandbox environment for creating ObjectiveAI Functions and Profiles.
+An ObjectiveAI function that evaluates how persuasive a piece of text is, scoring it on a scale from 0 (not persuasive) to 1 (highly persuasive).
 
-[GitHub](https://github.com/ObjectiveAI/objectiveai) | [Website](https://objective-ai.io) | [Discord](https://discord.gg/gbNFHensby)
+[ObjectiveAI](https://github.com/ObjectiveAI/objectiveai) | [Website](https://objective-ai.io) | [Discord](https://discord.gg/gbNFHensby)
 
-## What is this?
+## Overview
 
-This repository is a template workspace for inventing new ObjectiveAI **Functions** (scoring/ranking pipelines) and **Profiles** (learned weights).
+This function analyzes text across five dimensions of persuasion:
 
-It includes a **Claude Code skill** (`~/.claude/skills/invent/SKILL.md`) that guides Claude through the entire process of inventing a new Function from scratch - from studying examples to validating the new Function/Profile pair to publishing on GitHub.
+1. **Logical Appeal (Logos)** - Sound reasoning, evidence, and logical arguments
+2. **Emotional Appeal (Pathos)** - Emotional engagement and connection
+3. **Credibility (Ethos)** - Trust, authority, and credibility
+4. **Clarity** - Clear, well-organized, easy to understand messaging
+5. **Call to Action** - Motivation to act, believe, or change one's mind
 
-The sandbox provides all the tooling needed to:
+Each dimension is evaluated by an ensemble of LLMs, and the scores are combined into a final persuasiveness score.
 
-- Define a Function and Profile in TypeScript
-- Validate against the ObjectiveAI schema
-- Test with example inputs
-- Export to `function.json` and `profile.json`
-- Publish to GitHub and the ObjectiveAI index
+## Input Schema
 
-## Quick Start
+```json
+{
+  "type": "object",
+  "properties": {
+    "text": {
+      "type": "string",
+      "description": "The text to evaluate for persuasiveness"
+    },
+    "context": {
+      "type": "string",
+      "description": "Optional context about the intended audience or purpose"
+    }
+  },
+  "required": ["text"]
+}
+```
+
+## Output
+
+A scalar value between 0 and 1:
+- **0.0 - 0.2**: Very weak persuasion
+- **0.2 - 0.4**: Weak persuasion
+- **0.4 - 0.6**: Moderate persuasion
+- **0.6 - 0.8**: Strong persuasion
+- **0.8 - 1.0**: Very strong persuasion
+
+## Usage
+
+### Via ObjectiveAI API
+
+```bash
+curl -X POST https://api.objective-ai.io/v1/functions/executions \
+  -H "Authorization: Bearer $OBJECTIVEAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "function": {
+      "owner": "ObjectiveAI-claude-code-1",
+      "repository": "persuasiveness-scorer"
+    },
+    "input": {
+      "text": "Join over 2 million professionals who have transformed their careers. Studies show 94% of graduates report significant salary increases within 6 months.",
+      "context": "Career development program advertisement"
+    }
+  }'
+```
+
+### Via JavaScript SDK
+
+```typescript
+import ObjectiveAI from "objectiveai";
+
+const client = new ObjectiveAI();
+
+const result = await client.functions.executions.create({
+  function: {
+    owner: "ObjectiveAI-claude-code-1",
+    repository: "persuasiveness-scorer",
+  },
+  input: {
+    text: "Your persuasive text here...",
+    context: "Optional context about the audience",
+  },
+});
+
+console.log(result.output); // 0.0 - 1.0
+```
+
+## Use Cases
+
+- **Marketing Copy Evaluation** - Score the persuasiveness of ad copy, landing pages, or email campaigns
+- **Speech Analysis** - Evaluate the persuasive power of speeches or presentations
+- **Content Optimization** - A/B test different versions of persuasive content
+- **Education** - Help students understand what makes writing persuasive
+- **Sales Enablement** - Score and improve sales pitches and proposals
+
+## Development
 
 ```bash
 npm install
-npm run init      # Fetch example functions/profiles
 npm run build     # Validate, test, and export
-npm run publish   # (Optional) Index on ObjectiveAI
 ```
 
-## Project Structure
+## License
 
-```
-├── defs.ts           # Define your Function, Profile, and ExampleInputs here
-├── main.ts           # Scratchpad for experiments (npm run start)
-├── build.ts          # Exports Function/Profile to JSON (readonly)
-├── test.ts           # Validates and tests everything (readonly)
-├── init.ts           # Fetches example functions/profiles (readonly)
-├── publish.ts        # Publishes to ObjectiveAI index (readonly)
-├── exampleInput.ts  # ExampleInput type definition (readonly)
-├── function.json     # Generated Function output
-├── profile.json      # Generated Profile output
-├── examples/         # Downloaded example functions/profiles
-└── objectiveai/      # ObjectiveAI SDK (git submodule)
-```
-
-## Workflow
-
-1. **Study examples** - Run `npm run init` to download example functions/profiles, then explore `examples/`
-2. **Define your Function** - Edit `defs.ts` to create your Function with tasks and output expressions
-3. **Define your Profile** - Add a Profile that specifies ensembles and weights for each task
-4. **Create ExampleInputs** - Add 10 diverse test inputs covering edge cases
-5. **Build and test** - Run `npm run build` to validate and export
-6. **Publish** - Push to GitHub, optionally run `npm run publish` to index
-
-## Scripts
-
-| Command | Description |
-|---------|-------------|
-| `npm run start` | Run the scratchpad (`main.ts`) for experiments |
-| `npm run init` | Fetch example functions/profiles into `examples/` |
-| `npm run build` | Validate, test, and export to JSON |
-| `npm run test` | Run validation tests only |
-| `npm run publish` | Publish to ObjectiveAI index (requires API key) |
-
-## Using with Claude Code
-
-This sandbox includes a skill for Claude Code. To have Claude invent a new Function:
-
-1. Open this workspace in Claude Code
-2. Ask Claude to invent a new function (the skill will guide the process)
-3. Claude will study examples, propose ideas, and implement the Function/Profile
-
-The skill supports both **collaborative** (back-and-forth) and **autonomous** modes.
+MIT
