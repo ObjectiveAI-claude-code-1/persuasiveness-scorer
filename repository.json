@@ -1,4 +1,4 @@
 {
-  "repository": "",
-  "repositoryDescription": ""
+  "repository": "persuasiveness-scorer",
+  "repositoryDescription": "ObjectiveAI function that scores how persuasive a piece of text is on a scale from 0 to 1"
 }

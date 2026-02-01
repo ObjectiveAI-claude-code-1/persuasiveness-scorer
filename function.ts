@@ -3,12 +3,24 @@ import { Functions } from "objectiveai";
 export const Function: Functions.RemoteFunction = {
   type: "scalar.function",
   input_maps: null,
-  description: "Placeholder function.",
+  description: "Evaluates how persuasive a piece of text is, scoring it on a scale from 0 (not persuasive) to 1 (highly persuasive). Analyzes logical appeal, emotional appeal, credibility, clarity, and call-to-action strength.",
   changelog: null,
   input_schema: {
-    type: "integer",
+    type: "object",
+    properties: {
+      text: {
+        type: "string",
+        description: "The text to evaluate for persuasiveness",
+      },
+      context: {
+        type: "string",
+        description: "Optional context about the intended audience or purpose",
+      },
+    },
+    required: ["text"],
   },
   tasks: [
+    // Task 0: Logical Appeal (Logos)
     {
       type: "vector.completion",
       skip: null,
@@ -17,27 +29,109 @@ export const Function: Functions.RemoteFunction = {
         {
           role: "user",
           content: {
-            $jmespath:
-              "join('',['How much do you like the number ',to_string(input),'?'])",
+            $jmespath: "if(input.context, join('', ['Evaluate the LOGICAL APPEAL (Logos) of the following text. Context: ', to_string(input.context), '. Does this text use sound reasoning, evidence, and logical arguments?\n\nText: \"', to_string(input.text), '\"']), join('', ['Evaluate the LOGICAL APPEAL (Logos) of the following text. Does this text use sound reasoning, evidence, and logical arguments?\n\nText: \"', to_string(input.text), '\"']))",
           },
         },
       ],
       tools: null,
       responses: [
+        "Very Strong - The text presents compelling logical arguments with solid evidence and clear reasoning",
+        "Strong - The text has good logical structure with reasonable evidence",
+        "Moderate - The text has some logical elements but could be stronger",
+        "Weak - The text lacks clear logical structure or evidence",
+        "Very Weak - The text has no logical appeal or contains logical fallacies",
+      ],
+    },
+    // Task 1: Emotional Appeal (Pathos)
+    {
+      type: "vector.completion",
+      skip: null,
+      map: null,
+      messages: [
         {
-          $jmespath:
-            "join('',['I REALLY LOVE the number ',to_string(input),'!'])",
+          role: "user",
+          content: {
+            $jmespath: "if(input.context, join('', ['Evaluate the EMOTIONAL APPEAL (Pathos) of the following text. Context: ', to_string(input.context), '. Does this text effectively engage emotions and create an emotional connection?\n\nText: \"', to_string(input.text), '\"']), join('', ['Evaluate the EMOTIONAL APPEAL (Pathos) of the following text. Does this text effectively engage emotions and create an emotional connection?\n\nText: \"', to_string(input.text), '\"']))",
+          },
         },
+      ],
+      tools: null,
+      responses: [
+        "Very Strong - The text powerfully evokes emotions and creates deep emotional engagement",
+        "Strong - The text effectively appeals to emotions",
+        "Moderate - The text has some emotional elements but could resonate more",
+        "Weak - The text has minimal emotional appeal",
+        "Very Weak - The text is emotionally flat or off-putting",
+      ],
+    },
+    // Task 2: Credibility (Ethos)
+    {
+      type: "vector.completion",
+      skip: null,
+      map: null,
+      messages: [
         {
-          $jmespath: "join('',['Meh, ',to_string(input),' is okay I guess.'])",
+          role: "user",
+          content: {
+            $jmespath: "if(input.context, join('', ['Evaluate the CREDIBILITY (Ethos) of the following text. Context: ', to_string(input.context), '. Does this text establish trust, authority, and credibility?\n\nText: \"', to_string(input.text), '\"']), join('', ['Evaluate the CREDIBILITY (Ethos) of the following text. Does this text establish trust, authority, and credibility?\n\nText: \"', to_string(input.text), '\"']))",
+          },
         },
+      ],
+      tools: null,
+      responses: [
+        "Very Strong - The text establishes excellent credibility and authority",
+        "Strong - The text builds good trust and demonstrates expertise",
+        "Moderate - The text has some credibility but could be more authoritative",
+        "Weak - The text lacks credibility markers",
+        "Very Weak - The text undermines its own credibility",
+      ],
+    },
+    // Task 3: Clarity
+    {
+      type: "vector.completion",
+      skip: null,
+      map: null,
+      messages: [
         {
-          $jmespath: "join('',['I HATE the number ',to_string(input),'!'])",
+          role: "user",
+          content: {
+            $jmespath: "if(input.context, join('', ['Evaluate the CLARITY of the following text. Context: ', to_string(input.context), '. Is the message clear, well-organized, and easy to understand?\n\nText: \"', to_string(input.text), '\"']), join('', ['Evaluate the CLARITY of the following text. Is the message clear, well-organized, and easy to understand?\n\nText: \"', to_string(input.text), '\"']))",
+          },
         },
+      ],
+      tools: null,
+      responses: [
+        "Very Clear - The message is crystal clear, well-structured, and immediately understandable",
+        "Clear - The message is easy to follow and well-organized",
+        "Moderately Clear - The message is understandable but could be clearer",
+        "Unclear - The message is confusing or poorly organized",
+        "Very Unclear - The message is incomprehensible or muddled",
+      ],
+    },
+    // Task 4: Call to Action
+    {
+      type: "vector.completion",
+      skip: null,
+      map: null,
+      messages: [
+        {
+          role: "user",
+          content: {
+            $jmespath: "if(input.context, join('', ['Evaluate the CALL-TO-ACTION strength of the following text. Context: ', to_string(input.context), '. Does this text motivate the reader to act, believe, or change their mind?\n\nText: \"', to_string(input.text), '\"']), join('', ['Evaluate the CALL-TO-ACTION strength of the following text. Does this text motivate the reader to act, believe, or change their mind?\n\nText: \"', to_string(input.text), '\"']))",
+          },
+        },
+      ],
+      tools: null,
+      responses: [
+        "Very Strong - The text compels immediate action or belief change",
+        "Strong - The text effectively motivates the reader",
+        "Moderate - The text suggests action but isn't compelling",
+        "Weak - The text has minimal motivating power",
+        "Very Weak - The text provides no motivation to act or believe",
       ],
     },
   ],
   output: {
-    $jmespath: "add(tasks[0].scores[0],multiply(tasks[0].scores[1],`0.5`))",
+    $jmespath: "avg(tasks[*].add(add(add(scores[0], multiply(scores[1], `0.75`)), multiply(scores[2], `0.5`)), multiply(scores[3], `0.25`)))",
   },
 };
